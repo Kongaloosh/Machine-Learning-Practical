@@ -51,7 +51,6 @@ class DataProvider(object):
         """
         raise NotImplementedError()
 
-
 class MNISTDataProvider(DataProvider):
     """
     The class iterates over MNIST digits dataset, in possibly
@@ -120,7 +119,82 @@ class MNISTDataProvider(DataProvider):
         return rval_x, self.__to_one_of_k(rval_t)
         #return rval_x, rval_t
 
-    def __to_one_of_k(self, y):
+    @staticmethod
+    def __to_one_of_k(y):
+        print "here"
+        ret = []
+        len = max(y)+1
+        for i in y:
+            new = [0]*len
+            new[(i)] = 1
+            ret.append(new)
+        return ret
+
+class MetDataProvider(DataProvider):
+    """
+    The class iterates over MNIST digits dataset, in possibly
+    random order.
+    """
+    def __init__(self,
+                 batch_size=10,
+                 max_num_examples=-1,
+                 randomize=True):
+
+        super(MetDataProvider, self).\
+            __init__(batch_size, randomize)
+
+        dset_path = './data/met_data.pkl.gz'
+        assert os.path.isfile(dset_path), (
+            "File %s was expected to exist!." % dset_path
+        )
+
+        with gzip.open(dset_path) as f:
+            x, t = cPickle.load(f)
+
+        self._max_num_examples = max_num_examples
+        self.x = x
+        self.t = t
+        self.num_classes = 10
+
+        self._rand_idx = None
+        if self.randomize:
+            self._rand_idx = self.__randomize()
+
+    def reset(self):
+        super(MetDataProvider, self).reset()
+        if self.randomize:
+            self._rand_idx = self.__randomize()
+
+    def __randomize(self):
+        assert isinstance(self.x, numpy.ndarray)
+        return numpy.random.permutation(numpy.arange(0, self.x.shape[0]))
+
+    def next(self):
+
+        has_enough = (self._curr_idx + self.batch_size) <= self.x.shape[0]
+        presented_max = (self._max_num_examples > 0 and
+                         self._curr_idx + self.batch_size > self._max_num_examples)
+
+        if not has_enough or presented_max:
+            raise StopIteration()
+
+        if self._rand_idx is not None:
+            range_idx = \
+                self._rand_idx[self._curr_idx:self._curr_idx + self.batch_size]
+        else:
+            range_idx = \
+                numpy.arange(self._curr_idx, self._curr_idx + self.batch_size)
+
+        rval_x = self.x[range_idx]
+        rval_t = self.t[range_idx]
+
+        self._curr_idx += self.batch_size
+
+        # return rval_x, self.__to_one_of_k(rval_t)
+        return rval_x, rval_t
+
+    @staticmethod
+    def __to_one_of_k(y):
         print "here"
         ret = []
         len = max(y)+1
