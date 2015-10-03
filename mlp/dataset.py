@@ -117,12 +117,18 @@ class MNISTDataProvider(DataProvider):
 
         self._curr_idx += self.batch_size
 
-        #return rval_x, self.__to_one_of_k(rval_y)
-        return rval_x, rval_t
+        return rval_x, self.__to_one_of_k(rval_t)
+        #return rval_x, rval_t
 
     def __to_one_of_k(self, y):
-        raise NotImplementedError('Write me!')
-
+        print "here"
+        ret = []
+        len = max(y)+1
+        for i in y:
+            new = [0]*len
+            new[(i)] = 1
+            ret.append(new)
+        return ret
 
 class FuncDataProvider(DataProvider):
     """
